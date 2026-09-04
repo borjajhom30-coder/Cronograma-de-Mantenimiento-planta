@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cronograma de Mantenimiento 2026 · Agrícola Guapa</title>
+<style>
+  :root {
+    --bg: #f2f5ee;
+    --surface: #fdfdfb;
+    --surface-2: #e9eee2;
+    --surface-3: #dfe6d6;
+    --ink: #16301f;
+    --ink-muted: #4b5d4f;
+    --ink-faint: #7c8c7d;
+    --border: #d7ddcd;
+    --accent: #1c6b3a;
+    --accent-ink: #0f4023;
+    --accent-soft: #e1ead9;
+    --warn: #b9791c;
+    --warn-ink: #7a5013;
+    --warn-soft: #f6e8d2;
+    --crit: #af3d2a;
+    --crit-ink: #7a2a1c;
+    --crit-soft: #f7e2dc;
+    --future-soft: #e4e7e0;
+    --future-ink: #5c6b5e;
+    --shadow: 0 1px 2px rgba(22, 48, 31, 0.06), 0 8px 24px rgba(22, 48, 31, 0.06);
+    --radius: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101a13;
+      --surface: #16221a;
+      --surface-2: #1c2a20;
+      --surface-3: #223228;
+      --ink: #e9eee7;
+      --ink-muted: #a7b8ab;
+      --ink-faint: #7e9184;
+      --border: #2a3a2e;
+      --accent: #57b378;
+      --accent-ink: #a8e0bd;
+      --accent-soft: #1e3324;
+      --warn: #e3a548;
+      --warn-ink: #f4d9a6;
+      --warn-soft: #3a2e19;
+      --crit: #e08064;
+      --crit-ink: #f6c4b2;
+      --crit-soft: #3a231c;
+      --future-soft: #202c24;
+      --future-ink: #8a9c8c;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101a13; --surface: #16221a; --surface-2: #1c2a20; --surface-3: #223228;
+    --ink: #e9eee7; --ink-muted: #a7b8ab; --ink-faint: #7e9184; --border: #2a3a2e;
+    --accent: #57b378; --accent-ink: #a8e0bd; --accent-soft: #1e3324;
+    --warn: #e3a548; --warn-ink: #f4d9a6; --warn-soft: #3a2e19;
+    --crit: #e08064; --crit-ink: #f6c4b2; --crit-soft: #3a231c;
+    --future-soft: #202c24; --future-ink: #8a9c8c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    font-size: 15.5px; line-height: 1.5;
+  }
+  h1, h2, h3, .num-display {
+    font-family: "Fraunces", Georgia, serif;
+    font-optical-sizing: auto;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .mono, .weeknum, code, .code-block {
+    font-family: "IBM Plex Mono", monospace;
+  }
+  ::selection { background: var(--accent-soft); }
+  button { font-family: inherit; }
+  img { max-width: 100%; }
+
+  .app { max-width: 1180px; margin: 0 auto; padding: 18px 16px 64px; }
+
+  /* ---------- Header ---------- */
+  .topbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+    padding-bottom: 14px; margin-bottom: 18px; border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    display: flex; align-items: baseline; gap: 8px;
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-faint); width: 100%;
+  }
+  .brand .fruta { font-size: 16px; }
+  .topbar h1 { font-size: clamp(20px, 3.4vw, 26px); font-weight: 600; margin: 0; flex: 1 1 auto; }
+  .tabs { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 10px; }
+  .tab {
+    border: none; background: transparent; color: var(--ink-muted);
+    font-size: 13.5px; font-weight: 600; padding: 8px 14px; border-radius: 7px;
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active { background: var(--surface); color: var(--accent-ink); box-shadow: var(--shadow); }
+
+  .view { display: block; }
+  .view[hidden] { display: none; }
+
+  /* ---------- KPIs ---------- */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  @media (max-width: 720px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+  .kpi-tile {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; box-shadow: var(--shadow);
+  }
+  .kpi-tile .lbl {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: 6px;
+  }
+  .kpi-tile .val { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
+  .kpi-tile.crit .val { color: var(--crit); }
+  .kpi-tile.warn .val { color: var(--warn); }
+  .kpi-tile.good .val { color: var(--accent); }
+  .kpi-tile .sub { font-size: 12px; color: var(--ink-muted); margin-top: 4px; }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  select, input[type=text], input[type=date] {
+    font-family: inherit; font-size: 14px; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+  }
+  .live-dot { font-size: 12px; color: var(--ink-faint); display: flex; align-items: center; gap: 5px; }
+  .live-dot .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .refresh-btn {
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink-muted);
+    font-size: 12px; padding: 6px 10px; border-radius: 7px; cursor: pointer;
+  }
+  .refresh-btn:hover { color: var(--ink); }
+  .refresh-btn.spinning { animation: spin 0.8s linear; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .refresh-btn.spinning { animation: none; } }
+
+  .seg { display: inline-flex; background: var(--surface-2); border-radius: 8px; padding: 3px; gap: 2px; }
+  .seg button {
+    border: none; background: transparent; color: var(--ink-muted); font-size: 13px; font-weight: 600;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer;
+  }
+  .seg button.active { background: var(--surface); color: var(--accent-ink); box-shadow: var(--shadow); }
+
+  /* ---------- Equipo cards ---------- */
+  .equipo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .equipo-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .equipo-card > .head { padding: 14px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
+  .equipo-card .name { font-weight: 600; font-size: 15px; }
+  .equipo-card .sub { font-size: 12px; color: var(--ink-muted); }
+  .equipo-card .bar-track { height: 6px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+  .equipo-card .bar-fill { height: 100%; background: var(--accent); border-radius: 4px; }
+  .equipo-card .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 600;
+    padding: 3px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .pill.crit { background: var(--crit-soft); color: var(--crit-ink); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn-ink); }
+  .pill.good { background: var(--accent-soft); color: var(--accent-ink); }
+  .pill.future { background: var(--future-soft); color: var(--future-ink); }
+  .equipo-card .detail { border-top: 1px solid var(--border); padding: 14px 16px; background: var(--surface-2); }
+  .equipo-card .detail[hidden] { display: none; }
+
+  .grid-scroll { overflow-x: auto; padding-bottom: 4px; margin-top: 10px; }
+  table.weekgrid { border-collapse: collapse; font-size: 11.5px; }
+  table.weekgrid th, table.weekgrid td { padding: 0; text-align: center; }
+  table.weekgrid th.month {
+    font-family: "IBM Plex Mono", monospace; font-size: 10px; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--ink-faint); padding: 0 2px 4px; border-bottom: 1px solid var(--border);
+  }
+  table.weekgrid td.tarea-name {
+    text-align: left; padding: 4px 10px 4px 0; white-space: nowrap; max-width: 260px;
+    overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; color: var(--ink);
+  }
+  table.weekgrid td.freq {
+    font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--ink-faint); padding-right: 8px;
+    white-space: nowrap;
+  }
+  .cell-wrap { width: 15px; height: 15px; padding: 1px; }
+  .cell {
+    width: 100%; height: 100%; border-radius: 3px; cursor: default;
+    background: var(--surface-3);
+  }
+  .cell.cumplida { background: var(--accent); cursor: pointer; }
+  .cell.atrasada { background: var(--crit); cursor: pointer; }
+  .cell.pendiente { background: var(--warn); cursor: pointer; }
+  .cell.programada { background: var(--surface-3); }
+  .cell.hoy { box-shadow: 0 0 0 2px var(--ink) inset; }
+
+  /* ---------- Ejecución list ---------- */
+  .tarea-row {
+    display: flex; align-items: center; gap: 12px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+  }
+  .tarea-row .info { flex: 1 1 auto; min-width: 0; }
+  .tarea-row .equipo-lbl { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .04em; font-family: "IBM Plex Mono", monospace; }
+  .tarea-row .desc { font-size: 14px; margin-top: 2px; }
+  .tarea-row .meta { font-size: 12px; color: var(--ink-muted); margin-top: 3px; }
+  .btn {
+    border: none; border-radius: 8px; padding: 9px 14px; font-size: 13.5px; font-weight: 600;
+    cursor: pointer; white-space: nowrap; transition: filter .15s;
+  }
+  .btn:hover { filter: brightness(0.95); }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.ghost { background: var(--surface-2); color: var(--ink); }
+  .btn.danger { background: var(--crit); color: #fff; }
+  .empty-msg { color: var(--ink-faint); font-size: 13.5px; padding: 20px 4px; text-align: center; }
+
+  .hist-item { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .hist-item img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+  .hist-item .txt { font-size: 13px; }
+  .hist-item .txt b { font-weight: 600; }
+  .hist-item .txt .when { color: var(--ink-faint); font-size: 11.5px; }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(16,26,19,0.5); display: flex;
+    align-items: flex-end; justify-content: center; z-index: 50; padding: 0;
+  }
+  @media (min-width: 640px) { .modal-backdrop { align-items: center; padding: 20px; } }
+  .modal-backdrop[hidden] { display: none; }
+  .modal {
+    background: var(--surface); width: 100%; max-width: 460px; max-height: 92vh; overflow-y: auto;
+    border-radius: 16px 16px 0 0; box-shadow: var(--shadow); padding: 20px;
+  }
+  @media (min-width: 640px) { .modal { border-radius: 16px; } }
+  .modal h3 { margin: 0 0 4px; font-size: 18px; }
+  .modal .modal-sub { font-size: 12.5px; color: var(--ink-muted); margin-bottom: 16px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-muted); margin-bottom: 5px; }
+  .field input, .field textarea, .field select { width: 100%; }
+  .field textarea { font-family: inherit; font-size: 14px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); resize: vertical; min-height: 60px; }
+  .photo-input-wrap { display: flex; gap: 8px; }
+  .photo-preview { width: 100%; max-height: 260px; object-fit: contain; border-radius: 10px; border: 1px solid var(--border); margin-top: 8px; background: var(--surface-2); }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+  /* ---------- Informe view ---------- */
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .range-fields { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+  .range-fields .field { margin-bottom: 0; min-width: 150px; }
+  .summary-list { display: grid; gap: 6px; font-size: 13.5px; color: var(--ink-muted); margin: 14px 0; }
+  .summary-list b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .status-msg { font-size: 12.5px; margin-top: 8px; }
+  .status-msg.ok { color: var(--accent-ink); }
+  .status-msg.err { color: var(--crit-ink); }
+
+  .offline-notice {
+    background: var(--warn-soft); color: var(--warn-ink); border-radius: var(--radius);
+    padding: 16px 18px; font-size: 14px; margin-bottom: 16px;
+  }
+  footer.foot { text-align: center; font-size: 11.5px; color: var(--ink-faint); margin-top: 40px; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="fruta">🍍</span> Agrícola Guapa · Empacadora</div>
+    <h1>Cronograma de mantenimiento 2026</h1>
+    <nav class="tabs">
+      <button class="tab active" data-view="revision">Revisión</button>
+      <button class="tab" data-view="ejecucion">Ejecución</button>
+      <button class="tab" data-view="informe">Informe</button>
+    </nav>
+  </header>
+
+  <div id="offlineNotice" class="offline-notice" hidden>
+    No se pudo conectar con la base de datos (Google Sheets). Verifica tu conexión a internet, o si el problema sigue, avísale a quien administra el respaldo en Sheets.
+  </div>
+
+  <main>
+    <section id="view-revision" class="view">
+      <div class="kpi-row">
+        <div class="kpi-tile crit"><span class="lbl">Atrasadas</span><span class="val" id="kpiAtrasadas">–</span><span class="sub">tareas sin evidencia, ya vencidas</span></div>
+        <div class="kpi-tile good"><span class="lbl">Cumplimiento del año</span><span class="val" id="kpiCumplimiento">–</span><span class="sub" id="kpiCumplimientoSub">tareas al día / programadas</span></div>
+        <div class="kpi-tile warn"><span class="lbl">Pendientes esta semana</span><span class="val" id="kpiPendientes">–</span><span class="sub" id="kpiSemanaActual">–</span></div>
+        <div class="kpi-tile"><span class="lbl">Próxima semana</span><span class="val" id="kpiProxima">–</span><span class="sub">tareas programadas</span></div>
+      </div>
+
+      <div class="toolbar">
+        <select id="filtroEquipoRevision"><option value="">Todos los equipos</option></select>
+        <span class="live-dot"><span class="dot"></span> <span id="ultimaActualizacion">cargando…</span></span>
+        <button class="refresh-btn" id="btnRefrescar">↻ Actualizar</button>
+      </div>
+
+      <div class="equipo-grid" id="equipoGrid"></div>
+    </section>
+
+    <section id="view-ejecucion" class="view" hidden>
+      <div class="toolbar">
+        <div class="seg" id="segFiltro">
+          <button data-f="urgentes" class="active">Urgentes</button>
+          <button data-f="semana">Esta semana</button>
+          <button data-f="todas">Todas las tareas</button>
+        </div>
+      </div>
+      <div id="listaEjecucion"></div>
+
+      <h3 style="margin-top:28px; font-size:16px;">Historial reciente</h3>
+      <div id="historial"></div>
+    </section>
+
+    <section id="view-informe" class="view" hidden>
+      <div class="panel">
+        <h3 style="margin-top:0;">Descargar informe en Excel</h3>
+        <p class="modal-sub" style="margin-bottom:16px;">Elige el rango de fechas. El archivo trae el detalle semana a semana, el resumen de cumplimiento por equipo y la lista de evidencias registradas.</p>
+        <div class="presets" id="presetsRango">
+          <button class="btn ghost" data-preset="mes">Este mes</button>
+          <button class="btn ghost" data-preset="mesPasado">Mes pasado</button>
+          <button class="btn ghost" data-preset="2meses">Últimos 2 meses</button>
+          <button class="btn ghost" data-preset="anio">Todo 2026</button>
+        </div>
+        <div class="range-fields">
+          <div class="field"><label>Desde</label><input type="date" id="rangoDesde"></div>
+          <div class="field"><label>Hasta</label><input type="date" id="rangoHasta"></div>
+          <button class="btn primary" id="btnDescargarExcel">Descargar Excel</button>
+        </div>
+        <div class="summary-list" id="resumenRango"></div>
+        <div class="status-msg" id="excelStatus"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">Los datos de este cronograma viven en Google Sheets — este documento es la ventana para verlos y actualizarlos.</footer>
+</div>
+
+<!-- Modal: detalle de evidencia -->
+<div class="modal-backdrop" id="modalDetalle" hidden>
+  <div class="modal">
+    <h3 id="detEquipo">—</h3>
+    <div class="modal-sub" id="detTarea">—</div>
+    <div id="detContenido"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="modalDetalle">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: registrar ejecución -->
+<div class="modal-backdrop" id="modalRegistrar" hidden>
+  <div class="modal">
+    <h3 id="regEquipo">—</h3>
+    <div class="modal-sub" id="regTarea">—</div>
+    <div class="field">
+      <label>¿Quién la ejecutó?</label>
+      <input type="text" id="regResponsable" list="listaResponsables" placeholder="Nombre del técnico">
+      <datalist id="listaResponsables"></datalist>
+    </div>
+    <div class="field">
+      <label>Foto de evidencia (obligatoria)</label>
+      <div class="photo-input-wrap">
+        <input type="file" id="regFotoCamara" accept="image/*" capture="environment" style="flex:1;">
+      </div>
+      <input type="file" id="regFotoArchivo" accept="image/*" style="margin-top:6px; font-size:12.5px;">
+      <img id="regFotoPreview" class="photo-preview" hidden>
+    </div>
+    <div class="field">
+      <label>Comentario (opcional)</label>
+      <textarea id="regComentario" placeholder="Ej: se cambió sello, quedó pendiente pieza..."></textarea>
+    </div>
+    <div class="status-msg" id="regStatus"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="modalRegistrar">Cancelar</button>
+      <button class="btn primary" id="btnGuardarRegistro">Guardar ejecución</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ============ CONFIGURA AQUÍ TU BACKEND DE GOOGLE SHEETS ============ */
+  /* Pega aquí la URL que te entrega Google al implementar el Apps Script
+     (termina en /exec). Sin esto la app no tiene datos que mostrar. */
+  var API_URL = "REEMPLAZA_ESTA_LINEA_CON_TU_URL_DE_APPS_SCRIPT";
+  var REFRESCO_MS = 45000; // cada cuánto se refresca sola (45 segundos)
+
+  /* ============ Fechas y semanas 2026 ============ */
+  var YEAR = 2026;
+  var JAN1 = new Date(YEAR, 0, 1);
+  var TOTAL_WEEKS = 52;
+  var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+  function weekRange(n){
+    var startIdx = (n-1)*7;
+    var start = new Date(JAN1.getTime() + startIdx*86400000);
+    var end;
+    if (n === TOTAL_WEEKS) { end = new Date(YEAR, 11, 31); }
+    else { end = new Date(start.getTime() + 6*86400000); }
+    return {start: start, end: end};
+  }
+  function fmtDate(d){
+    var dd = String(d.getDate()).padStart(2,'0');
+    var mm = String(d.getMonth()+1).padStart(2,'0');
+    return dd+'/'+mm;
+  }
+  function fmtDateFull(d){
+    var dd = String(d.getDate()).padStart(2,'0');
+    var mm = String(d.getMonth()+1).padStart(2,'0');
+    return dd+'/'+mm+'/'+d.getFullYear();
+  }
+  function isoDate(d){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function currentWeekNumber(){
+    var today = new Date();
+    if (today.getFullYear() !== YEAR) {
+      return today.getFullYear() < YEAR ? 0 : TOTAL_WEEKS + 1;
+    }
+    var diffDays = Math.floor((new Date(today.getFullYear(),today.getMonth(),today.getDate()) - JAN1) / 86400000);
+    var wk = Math.floor(diffDays/7) + 1;
+    return Math.min(Math.max(wk,1), TOTAL_WEEKS);
+  }
+  var CURRENT_WEEK = currentWeekNumber();
+
+  function scheduledWeeks(freq){
+    var out = [];
+    for (var w=1; w<=TOTAL_WEEKS; w+=freq) out.push(w);
+    return out;
+  }
+
+  /* ============ Estado ============ */
+  var equipos = [];         // [{id,nombre,subsistemas:[]}]
+  var tareas = [];          // [{id,equipo_id,subsistema,descripcion,frecuencia_semanas}]
+  var ejecucionesByKey = {};// "tareaId_semana" -> lista de registros (última al final)
+  var responsablesConocidos = {};
+  var pendingRegistro = null; // {tarea, semana}
+  var fotoDataUrl = null;
+  var cargando = false;
+  var pollTimer = null;
+
+  function keyOf(tareaId, semana){ return tareaId+'_'+semana; }
+
+  function estadoDe(tarea, semana){
+    var recs = ejecucionesByKey[keyOf(tarea.id, semana)];
+    if (recs && recs.length) return 'cumplida';
+    if (semana < CURRENT_WEEK) return 'atrasada';
+    if (semana === CURRENT_WEEK) return 'pendiente';
+    return 'programada';
+  }
+
+  function tareasDe(equipoId){
+    return tareas.filter(function(t){ return t.equipo_id === equipoId; });
+  }
+
+  /* ============ Render: Tabs ============ */
+  document.querySelectorAll('.tab').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.tab').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelectorAll('.view').forEach(function(v){ v.hidden = true; });
+      document.getElementById('view-'+btn.dataset.view).hidden = false;
+    });
+  });
+
+  /* ============ KPIs ============ */
+  function renderKpis(){
+    var atrasadas=0, cumplidasYTD=0, atrasadasYTD=0, pendientes=0, proxima=0;
+    tareas.forEach(function(t){
+      scheduledWeeks(t.frecuencia_semanas).forEach(function(w){
+        var st = estadoDe(t,w);
+        if (st === 'atrasada') atrasadas++;
+        if (w <= CURRENT_WEEK) {
+          if (st === 'cumplida') cumplidasYTD++;
+          else if (st === 'atrasada') atrasadasYTD++;
+        }
+        if (st === 'pendiente') pendientes++;
+        if (w === CURRENT_WEEK+1) proxima++;
+      });
+    });
+    document.getElementById('kpiAtrasadas').textContent = atrasadas;
+    var totalYTD = cumplidasYTD + atrasadasYTD;
+    var pct = totalYTD ? Math.round(100*cumplidasYTD/totalYTD) : 100;
+    document.getElementById('kpiCumplimiento').textContent = pct + '%';
+    document.getElementById('kpiCumplimientoSub').textContent = cumplidasYTD + ' de ' + totalYTD + ' tareas al día';
+    document.getElementById('kpiPendientes').textContent = pendientes;
+    var wr = weekRange(CURRENT_WEEK);
+    document.getElementById('kpiSemanaActual').textContent = 'semana '+CURRENT_WEEK+' · '+fmtDate(wr.start)+'–'+fmtDate(wr.end);
+    document.getElementById('kpiProxima').textContent = proxima;
+  }
+
+  /* ============ Revisión: tarjetas de equipo ============ */
+  function equipoStats(equipoId){
+    var t = tareasDe(equipoId);
+    var c=0,a=0,p=0,f=0,ytdC=0,ytdT=0;
+    t.forEach(function(tarea){
+      scheduledWeeks(tarea.frecuencia_semanas).forEach(function(w){
+        var st = estadoDe(tarea,w);
+        if (st==='cumplida') c++;
+        else if (st==='atrasada') a++;
+        else if (st==='pendiente') p++;
+        else f++;
+        if (w<=CURRENT_WEEK && st!=='pendiente'){ ytdT++; if(st==='cumplida') ytdC++; }
+      });
+    });
+    return {c:c,a:a,p:p,f:f, pct: ytdT ? Math.round(100*ytdC/ytdT) : 100};
+  }
+
+  function monthGroupsFor(){
+    var groups = []; var lastMonth = -1;
+    for (var w=1; w<=TOTAL_WEEKS; w++){
+      var m = weekRange(w).start.getMonth();
+      if (m !== lastMonth){ groups.push({month:m, from:w, span:1}); lastMonth = m; }
+      else groups[groups.length-1].span++;
+    }
+    return groups;
+  }
+  var MONTH_GROUPS = monthGroupsFor();
+
+  function buildWeekGrid(equipoId){
+    var t = tareasDe(equipoId);
+    var html = '<div class="grid-scroll"><table class="weekgrid"><thead><tr><th></th><th></th>';
+    MONTH_GROUPS.forEach(function(g){ html += '<th class="month" colspan="'+g.span+'">'+MESES[g.month]+'</th>'; });
+    html += '</tr></thead><tbody>';
+    t.forEach(function(tarea){
+      html += '<tr><td class="tarea-name" title="'+esc(tarea.descripcion)+'">'+esc(tarea.descripcion)+'</td>';
+      html += '<td class="freq">c/'+tarea.frecuencia_semanas+'sem</td>';
+      var sched = {};
+      scheduledWeeks(tarea.frecuencia_semanas).forEach(function(w){ sched[w]=true; });
+      for (var w=1; w<=TOTAL_WEEKS; w++){
+        if (!sched[w]) { html += '<td class="cell-wrap"></td>'; continue; }
+        var st = estadoDe(tarea,w);
+        var hoy = (w===CURRENT_WEEK) ? ' hoy' : '';
+        html += '<td class="cell-wrap"><div class="cell '+st+hoy+'" data-tarea="'+tarea.id+'" data-semana="'+w+'" title="Semana '+w+' · '+st+'"></div></td>';
+      }
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  function renderEquipoGrid(){
+    var filtro = document.getElementById('filtroEquipoRevision').value;
+    var cont = document.getElementById('equipoGrid');
+    var list = filtro ? equipos.filter(function(e){ return e.id === Number(filtro); }) : equipos;
+    cont.innerHTML = list.map(function(eq){
+      var s = equipoStats(eq.id);
+      var subLabel = eq.subsistemas.length > 1 ? eq.subsistemas.length + ' subsistemas' : (eq.subsistemas[0]||'');
+      return '' +
+        '<div class="equipo-card" data-eqid="'+eq.id+'">' +
+          '<div class="head" data-toggle="'+eq.id+'">' +
+            '<div class="name">'+eq.id+'. '+esc(eq.nombre)+'</div>' +
+            '<div class="sub">'+esc(subLabel)+'</div>' +
+            '<div class="bar-track"><div class="bar-fill" style="width:'+s.pct+'%"></div></div>' +
+            '<div class="pills">' +
+              (s.a ? '<span class="pill crit">'+s.a+' atrasadas</span>' : '') +
+              (s.p ? '<span class="pill warn">'+s.p+' pendientes</span>' : '') +
+              '<span class="pill good">'+s.c+' cumplidas</span>' +
+              '<span class="pill future">'+s.f+' futuras</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="detail" id="detail-'+eq.id+'" hidden></div>' +
+        '</div>';
+    }).join('') || '<div class="empty-msg">No hay equipos que coincidan con el filtro.</div>';
+
+    cont.querySelectorAll('[data-toggle]').forEach(function(head){
+      head.addEventListener('click', function(){
+        var id = head.dataset.toggle;
+        var det = document.getElementById('detail-'+id);
+        var willOpen = det.hidden;
+        det.hidden = !willOpen;
+        det.innerHTML = willOpen ? buildWeekGrid(Number(id)) : '';
+        if (willOpen) det.querySelectorAll('.cell').forEach(function(c){ c.addEventListener('click', onCellClick); });
+      });
+    });
+  }
+
+  function onCellClick(e){
+    var el = e.currentTarget;
+    var tareaId = el.dataset.tarea, semana = Number(el.dataset.semana);
+    var tarea = tareas.find(function(t){ return t.id===tareaId; });
+    if (!tarea) return;
+    var st = estadoDe(tarea, semana);
+    if (st === 'cumplida') abrirDetalle(tarea, semana);
+    else if (st === 'atrasada' || st === 'pendiente') abrirRegistro(tarea, semana);
+  }
+
+  /* ============ Modal detalle ============ */
+  function abrirDetalle(tarea, semana){
+    var recs = ejecucionesByKey[keyOf(tarea.id,semana)] || [];
+    var rec = recs[recs.length-1];
+    var eq = equipos.find(function(e){ return e.id===tarea.equipo_id; });
+    document.getElementById('detEquipo').textContent = eq ? (eq.id+'. '+eq.nombre) : '';
+    document.getElementById('detTarea').textContent = tarea.descripcion + ' · semana ' + semana;
+    var html = '';
+    if (rec) {
+      html += '<div style="font-size:13.5px; color:var(--ink-muted); margin-bottom:10px;">' +
+        '<div><b style="color:var(--ink)">Responsable:</b> '+esc(rec.responsable||'—')+'</div>' +
+        '<div><b style="color:var(--ink)">Fecha:</b> '+esc(rec.fecha_ejecucion||'—')+'</div>' +
+        (rec.comentario ? '<div><b style="color:var(--ink)">Comentario:</b> '+esc(rec.comentario)+'</div>' : '') +
+        '</div>';
+      if (rec.foto_url) html += '<img class="photo-preview" src="'+esc(rec.foto_url)+'">';
+      else html += '<div class="empty-msg">Sin foto de evidencia en este registro.</div>';
+    } else {
+      html = '<div class="empty-msg">Sin registro.</div>';
+    }
+    document.getElementById('detContenido').innerHTML = html;
+    document.getElementById('modalDetalle').hidden = false;
+  }
+
+  /* ============ Modal registrar ============ */
+  function abrirRegistro(tarea, semana){
+    pendingRegistro = {tarea: tarea, semana: semana};
+    fotoDataUrl = null;
+    var eq = equipos.find(function(e){ return e.id===tarea.equipo_id; });
+    var wr = weekRange(semana);
+    document.getElementById('regEquipo').textContent = eq ? (eq.id+'. '+eq.nombre) : '';
+    document.getElementById('regTarea').textContent = tarea.descripcion + ' · semana ' + semana + ' ('+fmtDate(wr.start)+'–'+fmtDate(wr.end)+')';
+    document.getElementById('regResponsable').value = '';
+    document.getElementById('regComentario').value = '';
+    document.getElementById('regFotoCamara').value = '';
+    document.getElementById('regFotoArchivo').value = '';
+    document.getElementById('regFotoPreview').hidden = true;
+    document.getElementById('regStatus').textContent = '';
+    var dl = document.getElementById('listaResponsables');
+    dl.innerHTML = Object.keys(responsablesConocidos).map(function(n){ return '<option value="'+esc(n)+'">'; }).join('');
+    document.getElementById('modalRegistrar').hidden = false;
+  }
+
+  function compressImage(file){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function(e){
+        var img = new Image();
+        img.onerror = reject;
+        img.onload = function(){
+          var maxW = 900;
+          var scale = Math.min(1, maxW / img.width);
+          var w = Math.max(1, Math.round(img.width * scale));
+          var h = Math.max(1, Math.round(img.height * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          var quality = 0.72;
+          var out = canvas.toDataURL('image/jpeg', quality);
+          while (out.length > 700000 && quality > 0.25) {
+            quality -= 0.08;
+            out = canvas.toDataURL('image/jpeg', quality);
+          }
+          resolve(out);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function wireFotoInput(inputEl){
+    inputEl.addEventListener('change', function(){
+      var f = inputEl.files && inputEl.files[0];
+      if (!f) return;
+      document.getElementById('regStatus').textContent = 'Procesando foto…';
+      compressImage(f).then(function(dataUrl){
+        fotoDataUrl = dataUrl;
+        var prev = document.getElementById('regFotoPreview');
+        prev.src = dataUrl; prev.hidden = false;
+        document.getElementById('regStatus').textContent = '';
+      }).catch(function(){
+        document.getElementById('regStatus').textContent = 'No se pudo procesar esa foto, intenta con otra.';
+      });
+    });
+  }
+  wireFotoInput(document.getElementById('regFotoCamara'));
+  wireFotoInput(document.getElementById('regFotoArchivo'));
+
+  document.getElementById('btnGuardarRegistro').addEventListener('click', function(){
+    if (!pendingRegistro) return;
+    var responsable = document.getElementById('regResponsable').value.trim();
+    if (!responsable) { document.getElementById('regStatus').textContent = 'Escribe quién ejecutó la tarea.'; return; }
+    if (!fotoDataUrl) { document.getElementById('regStatus').textContent = 'Toma o sube la foto de evidencia antes de guardar.'; return; }
+    var tarea = pendingRegistro.tarea, semana = pendingRegistro.semana;
+    var comentario = document.getElementById('regComentario').value.trim();
+    var payload = {
+      tipo: 'ejecucion',
+      tarea_id: tarea.id,
+      equipo_id: tarea.equipo_id,
+      anio: YEAR,
+      semana: semana,
+      fecha_ejecucion: isoDate(new Date()),
+      responsable: responsable,
+      foto: fotoDataUrl,
+      comentario: comentario
+    };
+    var btn = document.getElementById('btnGuardarRegistro');
+    btn.disabled = true;
+    document.getElementById('regStatus').textContent = 'Guardando en Google Sheets…';
+    fetch(API_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload)
+    }).then(function(r){ return r.json(); }).then(function(json){
+      btn.disabled = false;
+      if (!json || json.ok === false) throw new Error(json && json.error);
+      document.getElementById('modalRegistrar').hidden = true;
+      cargarDatos();
+    }).catch(function(err){
+      btn.disabled = false;
+      document.getElementById('regStatus').textContent = 'No se pudo guardar. Revisa tu conexión e intenta otra vez.';
+    });
+  });
+
+  document.querySelectorAll('[data-close]').forEach(function(b){
+    b.addEventListener('click', function(){ document.getElementById(b.dataset.close).hidden = true; });
+  });
+  document.querySelectorAll('.modal-backdrop').forEach(function(m){
+    m.addEventListener('click', function(e){ if (e.target === m) m.hidden = true; });
+  });
+
+  /* ============ Ejecución: lista de tareas accionables ============ */
+  var filtroEjecucion = 'urgentes';
+  document.getElementById('segFiltro').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-f]');
+    if (!b) return;
+    document.querySelectorAll('#segFiltro button').forEach(function(x){ x.classList.remove('active'); });
+    b.classList.add('active');
+    filtroEjecucion = b.dataset.f;
+    renderListaEjecucion();
+  });
+
+  function renderListaEjecucion(){
+    var items = [];
+    tareas.forEach(function(t){
+      scheduledWeeks(t.frecuencia_semanas).forEach(function(w){
+        var st = estadoDe(t,w);
+        if (st==='cumplida' || st==='programada') return;
+        if (filtroEjecucion==='urgentes' && st!=='atrasada') return;
+        if (filtroEjecucion==='semana' && st!=='pendiente') return;
+        items.push({tarea:t, semana:w, estado:st});
+      });
+    });
+    items.sort(function(a,b){
+      if (a.estado!==b.estado) return a.estado==='atrasada' ? -1 : 1;
+      return a.semana - b.semana;
+    });
+    var cont = document.getElementById('listaEjecucion');
+    if (!items.length){
+      cont.innerHTML = '<div class="empty-msg">No hay tareas '+(filtroEjecucion==='urgentes'?'atrasadas':'pendientes')+' en este filtro. Buen trabajo.</div>';
+      return;
+    }
+    cont.innerHTML = items.map(function(it){
+      var eq = equipos.find(function(e){ return e.id===it.tarea.equipo_id; });
+      var wr = weekRange(it.semana);
+      var badge = it.estado==='atrasada' ? '<span class="pill crit">Atrasada</span>' : '<span class="pill warn">Esta semana</span>';
+      return '' +
+        '<div class="tarea-row">' +
+          '<div class="info">' +
+            '<div class="equipo-lbl">'+(eq?esc(eq.nombre):'')+' · semana '+it.semana+' · '+fmtDate(wr.start)+'–'+fmtDate(wr.end)+'</div>' +
+            '<div class="desc">'+esc(it.tarea.descripcion)+'</div>' +
+            '<div class="meta">'+badge+'</div>' +
+          '</div>' +
+          '<button class="btn primary" data-tarea="'+it.tarea.id+'" data-semana="'+it.semana+'">Registrar</button>' +
+        '</div>';
+    }).join('');
+    cont.querySelectorAll('button[data-tarea]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var t = tareas.find(function(x){ return x.id===b.dataset.tarea; });
+        abrirRegistro(t, Number(b.dataset.semana));
+      });
+    });
+  }
+
+  function renderHistorial(){
+    var all = [];
+    Object.keys(ejecucionesByKey).forEach(function(k){
+      ejecucionesByKey[k].forEach(function(r){ all.push(r); });
+    });
+    all.sort(function(a,b){ return (b.fecha_registro||'').localeCompare(a.fecha_registro||''); });
+    all = all.slice(0,12);
+    var cont = document.getElementById('historial');
+    if (!all.length){ cont.innerHTML = '<div class="empty-msg">Todavía no hay ejecuciones registradas.</div>'; return; }
+    cont.innerHTML = all.map(function(r){
+      var t = tareas.find(function(x){ return x.id===r.tarea_id; });
+      var eq = t ? equipos.find(function(e){ return e.id===t.equipo_id; }) : null;
+      return '' +
+        '<div class="hist-item">' +
+          (r.foto_url ? '<img src="'+esc(r.foto_url)+'">' : '<div style="width:44px;height:44px;border-radius:8px;background:var(--surface-2);flex:none;"></div>') +
+          '<div class="txt"><b>'+(eq?esc(eq.nombre):'')+'</b> — '+(t?esc(t.descripcion):'')+'<br>' +
+          '<span class="when">'+esc(r.responsable||'')+' · semana '+r.semana+' · '+esc(r.fecha_ejecucion||'')+'</span></div>' +
+        '</div>';
+    }).join('');
+  }
+
+  /* ============ Informe (Excel) ============ */
+  function presetRange(kind){
+    var today = new Date();
+    var from, to;
+    if (kind==='mes'){ from = new Date(today.getFullYear(),today.getMonth(),1); to = today; }
+    else if (kind==='mesPasado'){ from = new Date(today.getFullYear(),today.getMonth()-1,1); to = new Date(today.getFullYear(),today.getMonth(),0); }
+    else if (kind==='2meses'){ from = new Date(today.getFullYear(),today.getMonth()-1,1); to = today; }
+    else { from = new Date(YEAR,0,1); to = new Date(YEAR,11,31); }
+    document.getElementById('rangoDesde').value = isoDate(from);
+    document.getElementById('rangoHasta').value = isoDate(to);
+    renderResumenRango();
+  }
+  document.getElementById('presetsRango').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-preset]');
+    if (b) presetRange(b.dataset.preset);
+  });
+  document.getElementById('rangoDesde').addEventListener('change', renderResumenRango);
+  document.getElementById('rangoHasta').addEventListener('change', renderResumenRango);
+
+  function weeksInRange(){
+    var desde = document.getElementById('rangoDesde').value;
+    var hasta = document.getElementById('rangoHasta').value;
+    if (!desde || !hasta) return [];
+    var d0 = new Date(desde+'T00:00:00'), d1 = new Date(hasta+'T00:00:00');
+    var out = [];
+    for (var w=1; w<=TOTAL_WEEKS; w++){
+      var wr = weekRange(w);
+      if (wr.end >= d0 && wr.start <= d1) out.push(w);
+    }
+    return out;
+  }
+
+  function renderResumenRango(){
+    var weeks = weeksInRange();
+    var wset = {}; weeks.forEach(function(w){ wset[w]=true; });
+    var total=0, cumplidas=0, atrasadas=0, evidencias=0;
+    tareas.forEach(function(t){
+      scheduledWeeks(t.frecuencia_semanas).forEach(function(w){
+        if (!wset[w]) return;
+        total++;
+        var st = estadoDe(t,w);
+        if (st==='cumplida'){ cumplidas++; evidencias += (ejecucionesByKey[keyOf(t.id,w)]||[]).filter(function(r){return r.foto_url;}).length; }
+        else if (st==='atrasada') atrasadas++;
+      });
+    });
+    document.getElementById('resumenRango').innerHTML =
+      '<div>Tareas programadas en el rango: <b>'+total+'</b></div>' +
+      '<div>Cumplidas: <b>'+cumplidas+'</b> · Atrasadas: <b>'+atrasadas+'</b></div>' +
+      '<div>Evidencias con foto: <b>'+evidencias+'</b></div>';
+  }
+
+  function buildWorkbook(){
+    var weeks = weeksInRange();
+    var wset = {}; weeks.forEach(function(w){ wset[w]=true; });
+    var wb = XLSX.utils.book_new();
+
+    var detalle = [['Equipo','Subsistema','Tarea','Frecuencia (semanas)','Semana','Del','Al','Estado','Fecha ejecución','Responsable']];
+    var resumenMap = {};
+    var evidencias = [['Equipo','Tarea','Semana','Fecha ejecución','Responsable','Comentario','Enlace a la foto']];
+
+    tareas.forEach(function(t){
+      var eq = equipos.find(function(e){ return e.id===t.equipo_id; });
+      var eqNombre = eq ? eq.nombre : '';
+      if (!resumenMap[t.equipo_id]) resumenMap[t.equipo_id] = {nombre:eqNombre, total:0, cumplidas:0, atrasadas:0};
+      scheduledWeeks(t.frecuencia_semanas).forEach(function(w){
+        if (!wset[w]) return;
+        var st = estadoDe(t,w);
+        var wr = weekRange(w);
+        var recs = ejecucionesByKey[keyOf(t.id,w)] || [];
+        var rec = recs[recs.length-1];
+        detalle.push([eqNombre, t.subsistema, t.descripcion, t.frecuencia_semanas, w, fmtDateFull(wr.start), fmtDateFull(wr.end), st, rec?rec.fecha_ejecucion:'', rec?rec.responsable:'']);
+        resumenMap[t.equipo_id].total++;
+        if (st==='cumplida') resumenMap[t.equipo_id].cumplidas++;
+        if (st==='atrasada') resumenMap[t.equipo_id].atrasadas++;
+        recs.forEach(function(r){
+          evidencias.push([eqNombre, t.descripcion, w, r.fecha_ejecucion||'', r.responsable||'', r.comentario||'', r.foto_url||'']);
+        });
+      });
+    });
+
+    var resumen = [['Equipo','Tareas programadas en rango','Cumplidas','Atrasadas','% cumplimiento']];
+    Object.keys(resumenMap).forEach(function(id){
+      var r = resumenMap[id];
+      var pct = r.total ? Math.round(100*r.cumplidas/r.total) : 0;
+      resumen.push([r.nombre, r.total, r.cumplidas, r.atrasadas, pct+'%']);
+    });
+
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detalle), 'Detalle');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumen), 'Resumen cumplimiento');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(evidencias), 'Evidencias');
+    return wb;
+  }
+
+  function descargarBlob(blob, filename){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  }
+
+  document.getElementById('btnDescargarExcel').addEventListener('click', function(){
+    var statusEl = document.getElementById('excelStatus');
+    var desde = document.getElementById('rangoDesde').value, hasta = document.getElementById('rangoHasta').value;
+    if (!desde || !hasta){ statusEl.className='status-msg err'; statusEl.textContent='Elige el rango de fechas primero.'; return; }
+    statusEl.className='status-msg'; statusEl.textContent='Generando…';
+    try {
+      var wb = buildWorkbook();
+      var out = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+      var blob = new Blob([out], {type:'application/octet-stream'});
+      descargarBlob(blob, 'cronograma_mantenimiento_'+desde+'_a_'+hasta+'.xlsx');
+      statusEl.className='status-msg ok'; statusEl.textContent='Descargado.';
+    } catch(err){
+      statusEl.className='status-msg err'; statusEl.textContent='Ocurrió un error generando el archivo.';
+    }
+  });
+
+  /* ============ Utilidades ============ */
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  /* ============ Carga de datos desde Google Sheets ============ */
+  function normalizeEquipo(e){
+    return {
+      id: Number(e.id),
+      nombre: String(e.nombre||''),
+      subsistemas: String(e.subsistemas||'').split(' | ').filter(Boolean)
+    };
+  }
+  function normalizeTarea(t){
+    return {
+      id: String(t.id),
+      equipo_id: Number(t.equipo_id),
+      subsistema: String(t.subsistema||''),
+      descripcion: String(t.descripcion||''),
+      frecuencia_semanas: Number(t.frecuencia_semanas)
+    };
+  }
+  function rebuildResponsables(){
+    responsablesConocidos = {};
+    Object.keys(ejecucionesByKey).forEach(function(k){
+      ejecucionesByKey[k].forEach(function(r){ if (r.responsable) responsablesConocidos[r.responsable]=true; });
+    });
+  }
+  function renderAll(){
+    renderKpis();
+    renderEquipoGrid();
+    renderListaEjecucion();
+    renderHistorial();
+    renderResumenRango();
+  }
+  function populateFiltroEquipos(){
+    var sel = document.getElementById('filtroEquipoRevision');
+    var prev = sel.value;
+    sel.innerHTML = '<option value="">Todos los equipos</option>';
+    equipos.slice().sort(function(a,b){return a.id-b.id;}).forEach(function(eq){
+      var opt = document.createElement('option');
+      opt.value = eq.id; opt.textContent = eq.id+'. '+eq.nombre;
+      sel.appendChild(opt);
+    });
+    sel.value = prev;
+  }
+  document.getElementById('filtroEquipoRevision').addEventListener('change', renderEquipoGrid);
+  document.getElementById('btnRefrescar').addEventListener('click', function(){
+    var btn = document.getElementById('btnRefrescar');
+    btn.classList.add('spinning');
+    cargarDatos().finally(function(){ setTimeout(function(){ btn.classList.remove('spinning'); }, 300); });
+  });
+  window.addEventListener('focus', function(){ cargarDatos(); });
+
+  function cargarDatos(){
+    if (cargando) return Promise.resolve();
+    cargando = true;
+    return fetch(API_URL, {cache:'no-store'})
+      .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(data){
+        equipos = (data.equipos||[]).map(normalizeEquipo);
+        tareas = (data.tareas||[]).map(normalizeTarea);
+        var map = {};
+        (data.ejecuciones||[]).forEach(function(r){
+          var semana = Number(r.semana);
+          var k = keyOf(String(r.tarea_id), semana);
+          if (!map[k]) map[k] = [];
+          map[k].push({
+            tarea_id: String(r.tarea_id), equipo_id: Number(r.equipo_id), anio: Number(r.anio),
+            semana: semana, fecha_ejecucion: r.fecha_ejecucion, responsable: r.responsable,
+            foto_url: r.foto_url, comentario: r.comentario, fecha_registro: r.fecha_registro
+          });
+        });
+        Object.keys(map).forEach(function(k){ map[k].sort(function(a,b){ return (a.fecha_registro||'').localeCompare(b.fecha_registro||''); }); });
+        ejecucionesByKey = map;
+        rebuildResponsables();
+        populateFiltroEquipos();
+        renderAll();
+        document.getElementById('offlineNotice').hidden = true;
+        document.getElementById('ultimaActualizacion').textContent = 'actualizado ' + new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'});
+      })
+      .catch(function(err){
+        document.getElementById('offlineNotice').hidden = false;
+        document.getElementById('ultimaActualizacion').textContent = 'sin conexión';
+      })
+      .finally(function(){ cargando = false; });
+  }
+
+  function init(){
+    presetRange('mes');
+    if (!API_URL || API_URL.indexOf('REEMPLAZA_ESTA_LINEA') === 0) {
+      document.getElementById('offlineNotice').hidden = false;
+      document.getElementById('offlineNotice').textContent = 'Falta configurar la URL del Apps Script dentro del archivo (busca API_URL al inicio del script).';
+      document.getElementById('ultimaActualizacion').textContent = 'sin configurar';
+      return;
+    }
+    cargarDatos();
+    pollTimer = setInterval(cargarDatos, REFRESCO_MS);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
