@@ -416,7 +416,7 @@
      Está puesta para el lunes de la semana que viene. Si necesitas correrla
      (por ejemplo, si todavía no vas a empezar a registrar), solo cambia esta
      fecha por la que corresponda, en formato AAAA-MM-DD. */
-  var FECHA_INICIO_SEGUIMIENTO = "2026-09-10";
+  var FECHA_INICIO_SEGUIMIENTO = "2026-09-07";
 
   /* ============ Fechas y semanas — motor perpetuo (no atado a un solo año) ============
      Cada año tiene su propia grilla de 52-53 semanas, empezando el 1 de enero de
@@ -431,16 +431,29 @@
   var YEAR = ANIO_HOY; // año que se muestra en Revisión/Ejecución; navegable
 
   function jan1(anio){ return new Date(anio, 0, 1); }
+  function mondayDeLaSemanaDe(fecha){
+    // Lunes de la semana calendario (lunes a domingo) que contiene esta fecha.
+    var d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+    var dow = d.getDay(); // 0=domingo,1=lunes,...,6=sábado
+    var diff = (dow === 0) ? 6 : dow - 1;
+    return new Date(d.getTime() - diff*86400000);
+  }
+  function semana1Inicio(anio){
+    // El lunes de la semana calendario que contiene el 1 de enero de ese año.
+    // Con esto, TODAS las semanas del cronograma arrancan en lunes, siempre
+    // (antes arrancaban el 1 de enero cayera el día que cayera).
+    return mondayDeLaSemanaDe(jan1(anio));
+  }
   function totalWeeksFor(anio){
-    // Siempre 52 "cajones" de una semana desde el 1 de enero de ese año; el
-    // último absorbe los días de sobra hasta el 31 de diciembre (ver
+    // Siempre 52 semanas de lunes a domingo desde el lunes de semana1Inicio; la
+    // última absorbe los días de sobra hasta el 31 de diciembre (ver
     // weekRangeFor). Así el conteo de semanas es igual todos los años, para
-    // siempre, sin tener que distinguir años de 52 o 53 semanas ISO.
+    // siempre, y cada semana empieza en lunes.
     return 52;
   }
   function weekRangeFor(anio, n){
     var tw = totalWeeksFor(anio);
-    var start = new Date(jan1(anio).getTime() + (n-1)*7*86400000);
+    var start = new Date(semana1Inicio(anio).getTime() + (n-1)*7*86400000);
     var end;
     if (n === tw) { end = new Date(anio, 11, 31); }
     else { end = new Date(start.getTime() + 6*86400000); }
@@ -448,7 +461,7 @@
   }
   function semanaDeFecha(fecha){
     var anio = fecha.getFullYear();
-    var diffDays = Math.floor((new Date(anio, fecha.getMonth(), fecha.getDate()) - jan1(anio)) / 86400000);
+    var diffDays = Math.floor((new Date(anio, fecha.getMonth(), fecha.getDate()) - semana1Inicio(anio)) / 86400000);
     var tw = totalWeeksFor(anio);
     var wk = Math.min(Math.max(Math.floor(diffDays/7) + 1, 1), tw);
     return {anio: anio, semana: wk};
@@ -847,7 +860,8 @@
     });
     var cont = document.getElementById('listaEjecucion');
     if (!items.length){
-      cont.innerHTML = '<div class="empty-msg">No hay tareas '+(filtroEjecucion==='urgentes'?'atrasadas':'pendientes')+' en este filtro. Buen trabajo.</div>';
+      var msgFiltro = filtroEjecucion==='urgentes' ? 'atrasadas' : (filtroEjecucion==='semana' ? 'pendientes esta semana' : 'por hacer (pendientes o atrasadas)');
+      cont.innerHTML = '<div class="empty-msg">No hay tareas '+msgFiltro+' en este filtro. Buen trabajo.<br><span style="font-size:11.5px;">Para ver el catálogo completo de equipos y tareas, aunque todavía no les toque turno, entra a la pestaña Revisión.</span></div>';
       return;
     }
     cont.innerHTML = items.map(function(it){
