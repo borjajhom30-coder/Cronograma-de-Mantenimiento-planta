@@ -143,6 +143,11 @@
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .refresh-btn.spinning { animation: none; } }
 
+  .year-nav { display: flex; align-items: center; gap: 4px; }
+  .year-nav .anio-val {
+    font-family: "IBM Plex Mono", monospace; font-weight: 600; font-size: 14.5px;
+    min-width: 42px; text-align: center; display: inline-block; color: var(--ink);
+  }
   .seg { display: inline-flex; background: var(--surface-2); border-radius: 8px; padding: 3px; gap: 2px; }
   .seg button {
     border: none; background: transparent; color: var(--ink-muted); font-size: 13px; font-weight: 600;
@@ -272,6 +277,12 @@
   <header class="topbar">
     <div class="brand"><span class="fruta">🍍</span> Agrícola Guapa · Empacadora</div>
     <h1>Cronograma de mantenimiento planta</h1>
+    <div class="year-nav" id="yearNav">
+      <button class="refresh-btn" id="btnAnioPrev" title="Año anterior">‹</button>
+      <span class="anio-val" id="anioActual">—</span>
+      <button class="refresh-btn" id="btnAnioNext" title="Año siguiente">›</button>
+      <button class="refresh-btn" id="btnAnioHoy" title="Volver al año actual">Hoy</button>
+    </div>
     <nav class="tabs">
       <button class="tab active" data-view="revision">Revisión</button>
       <button class="tab" data-view="ejecucion">Ejecución</button>
@@ -294,9 +305,13 @@
 
       <div class="toolbar">
         <select id="filtroEquipoRevision"><option value="">Todos los equipos</option></select>
+        <span class="mono" style="font-size:12.5px; color:var(--ink-muted);">Buscar por fecha:</span>
+        <input type="date" id="buscarFecha">
+        <button class="btn ghost" id="btnBuscarFecha">Ir a esa fecha</button>
         <span class="live-dot"><span class="dot"></span> <span id="ultimaActualizacion">cargando…</span></span>
         <button class="refresh-btn" id="btnRefrescar">↻ Actualizar</button>
       </div>
+      <div class="status-msg" id="buscarFechaStatus" style="margin:-6px 0 10px;"></div>
 
       <div class="equipo-grid" id="equipoGrid"></div>
     </section>
@@ -323,7 +338,7 @@
           <button class="btn ghost" data-preset="mes">Este mes</button>
           <button class="btn ghost" data-preset="mesPasado">Mes pasado</button>
           <button class="btn ghost" data-preset="2meses">Últimos 2 meses</button>
-          <button class="btn ghost" data-preset="anio">Todo 2026</button>
+          <button class="btn ghost" data-preset="anio" id="presetAnioLabel">Todo el año</button>
         </div>
         <div class="range-fields">
           <div class="field"><label>Desde</label><input type="date" id="rangoDesde"></div>
@@ -392,20 +407,69 @@
   var API_URL = "https://script.google.com/macros/s/AKfycbycvssDN13INY-ggRhhYJsTybEVVBgDF7QE0Z-nypEmfnIqX3fvv23-sja02xTEsLyS/exec";
   var REFRESCO_MS = 45000; // cada cuánto se refresca sola (45 segundos)
 
-  /* ============ Fechas y semanas 2026 ============ */
-  var YEAR = 2026;
-  var JAN1 = new Date(YEAR, 0, 1);
-  var TOTAL_WEEKS = 52;
-  var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  /* ============ ¿DESDE CUÁNDO EMPIEZA EL SEGUIMIENTO? ============
+     Todo lo que quedó ATRÁS de esta fecha (todo lo que "no se alcanzó a hacer"
+     antes de arrancar la app) se muestra en gris, como si todavía no le tocara
+     su turno — NO se marca como atrasada. A partir de esta fecha en adelante,
+     el semáforo funciona normal: atrasada si pasó su semana sin evidencia,
+     amarilla la semana en curso.
+     Está puesta para el lunes de la semana que viene. Si necesitas correrla
+     (por ejemplo, si todavía no vas a empezar a registrar), solo cambia esta
+     fecha por la que corresponda, en formato AAAA-MM-DD. */
+  var FECHA_INICIO_SEGUIMIENTO = "2026-09-10";
 
-  function weekRange(n){
-    var startIdx = (n-1)*7;
-    var start = new Date(JAN1.getTime() + startIdx*86400000);
+  /* ============ Fechas y semanas — motor perpetuo (no atado a un solo año) ============
+     Cada año tiene su propia grilla de 52-53 semanas, empezando el 1 de enero de
+     ESE año. YEAR es el año que se está VIENDO en pantalla (navegable con las
+     flechas del encabezado); por defecto es el año real de hoy. El estado de
+     cada tarea (cumplida/atrasada/pendiente/programada) siempre se calcula
+     contra la fecha real de hoy (ANIO_HOY/SEMANA_HOY), sin importar qué año
+     se esté mirando — así el sistema queda vigente para siempre, no solo 2026. */
+  var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  var HOY = new Date();
+  var ANIO_HOY = HOY.getFullYear();
+  var YEAR = ANIO_HOY; // año que se muestra en Revisión/Ejecución; navegable
+
+  function jan1(anio){ return new Date(anio, 0, 1); }
+  function totalWeeksFor(anio){
+    // Siempre 52 "cajones" de una semana desde el 1 de enero de ese año; el
+    // último absorbe los días de sobra hasta el 31 de diciembre (ver
+    // weekRangeFor). Así el conteo de semanas es igual todos los años, para
+    // siempre, sin tener que distinguir años de 52 o 53 semanas ISO.
+    return 52;
+  }
+  function weekRangeFor(anio, n){
+    var tw = totalWeeksFor(anio);
+    var start = new Date(jan1(anio).getTime() + (n-1)*7*86400000);
     var end;
-    if (n === TOTAL_WEEKS) { end = new Date(YEAR, 11, 31); }
+    if (n === tw) { end = new Date(anio, 11, 31); }
     else { end = new Date(start.getTime() + 6*86400000); }
     return {start: start, end: end};
   }
+  function semanaDeFecha(fecha){
+    var anio = fecha.getFullYear();
+    var diffDays = Math.floor((new Date(anio, fecha.getMonth(), fecha.getDate()) - jan1(anio)) / 86400000);
+    var tw = totalWeeksFor(anio);
+    var wk = Math.min(Math.max(Math.floor(diffDays/7) + 1, 1), tw);
+    return {anio: anio, semana: wk};
+  }
+  var SEMANA_HOY = semanaDeFecha(HOY).semana; // semana real de hoy dentro de ANIO_HOY
+
+  var INICIO_SEGUIMIENTO = semanaDeFecha(new Date(FECHA_INICIO_SEGUIMIENTO+'T00:00:00'));
+  function enSeguimiento(anio, semana){
+    return anio > INICIO_SEGUIMIENTO.anio || (anio === INICIO_SEGUIMIENTO.anio && semana >= INICIO_SEGUIMIENTO.semana);
+  }
+
+  // JAN1/TOTAL_WEEKS/MONTH_GROUPS reflejan el año que se está viendo (YEAR) y se
+  // recalculan cada vez que se navega a otro año con setYear().
+  var JAN1, TOTAL_WEEKS, MONTH_GROUPS;
+  function refrescarConstantesDeAnio(){
+    JAN1 = jan1(YEAR);
+    TOTAL_WEEKS = totalWeeksFor(YEAR);
+    MONTH_GROUPS = monthGroupsFor();
+  }
+  function weekRange(n){ return weekRangeFor(YEAR, n); }
+
   function fmtDate(d){
     var dd = String(d.getDate()).padStart(2,'0');
     var mm = String(d.getMonth()+1).padStart(2,'0');
@@ -419,40 +483,34 @@
   function isoDate(d){
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
-  function currentWeekNumber(){
-    var today = new Date();
-    if (today.getFullYear() !== YEAR) {
-      return today.getFullYear() < YEAR ? 0 : TOTAL_WEEKS + 1;
-    }
-    var diffDays = Math.floor((new Date(today.getFullYear(),today.getMonth(),today.getDate()) - JAN1) / 86400000);
-    var wk = Math.floor(diffDays/7) + 1;
-    return Math.min(Math.max(wk,1), TOTAL_WEEKS);
-  }
-  var CURRENT_WEEK = currentWeekNumber();
 
-  function scheduledWeeks(freq){
+  function scheduledWeeks(freq, anio){
+    var tw = totalWeeksFor(anio);
     var out = [];
-    for (var w=1; w<=TOTAL_WEEKS; w+=freq) out.push(w);
+    for (var w=1; w<=tw; w+=freq) out.push(w);
     return out;
   }
 
   /* ============ Estado ============ */
   var equipos = [];         // [{id,nombre,subsistemas:[]}]
   var tareas = [];          // [{id,equipo_id,subsistema,descripcion,frecuencia_semanas}]
-  var ejecucionesByKey = {};// "tareaId_semana" -> lista de registros (última al final)
+  var ejecucionesByKey = {};// "tareaId_anio_semana" -> lista de registros (última al final)
   var responsablesConocidos = {};
-  var pendingRegistro = null; // {tarea, semana}
+  var pendingRegistro = null; // {tarea, anio, semana}
   var fotoDataUrl = null;
   var cargando = false;
   var pollTimer = null;
 
-  function keyOf(tareaId, semana){ return tareaId+'_'+semana; }
+  function keyOf(tareaId, anio, semana){ return tareaId+'_'+anio+'_'+semana; }
 
-  function estadoDe(tarea, semana){
-    var recs = ejecucionesByKey[keyOf(tarea.id, semana)];
+  function estadoDe(tarea, anio, semana){
+    var recs = ejecucionesByKey[keyOf(tarea.id, anio, semana)];
     if (recs && recs.length) return 'cumplida';
-    if (semana < CURRENT_WEEK) return 'atrasada';
-    if (semana === CURRENT_WEEK) return 'pendiente';
+    if (!enSeguimiento(anio, semana)) return 'programada'; // antes de arrancar: no se marca atrasada
+    if (anio < ANIO_HOY) return 'atrasada';
+    if (anio > ANIO_HOY) return 'programada';
+    if (semana < SEMANA_HOY) return 'atrasada';
+    if (semana === SEMANA_HOY) return 'pendiente';
     return 'programada';
   }
 
@@ -470,19 +528,48 @@
     });
   });
 
+  /* ============ Navegación de año y búsqueda por fecha ============ */
+  function setYear(nuevoAnio){
+    YEAR = nuevoAnio;
+    refrescarConstantesDeAnio();
+    document.getElementById('anioActual').textContent = YEAR;
+    var lbl = document.getElementById('presetAnioLabel');
+    if (lbl) lbl.textContent = 'Todo '+YEAR;
+    renderAll();
+  }
+  document.getElementById('btnAnioPrev').addEventListener('click', function(){ setYear(YEAR-1); });
+  document.getElementById('btnAnioNext').addEventListener('click', function(){ setYear(YEAR+1); });
+  document.getElementById('btnAnioHoy').addEventListener('click', function(){ setYear(ANIO_HOY); });
+
+  document.getElementById('btnBuscarFecha').addEventListener('click', function(){
+    var val = document.getElementById('buscarFecha').value;
+    var status = document.getElementById('buscarFechaStatus');
+    if (!val) { if (status) status.textContent = 'Elige primero una fecha.'; return; }
+    var fecha = new Date(val+'T00:00:00');
+    var r = semanaDeFecha(fecha);
+    setYear(r.anio);
+    document.querySelectorAll('.tab').forEach(function(b){ b.classList.remove('active'); });
+    var tabRevision = document.querySelector('.tab[data-view="revision"]');
+    if (tabRevision) tabRevision.classList.add('active');
+    document.querySelectorAll('.view').forEach(function(v){ v.hidden = true; });
+    document.getElementById('view-revision').hidden = false;
+    if (status) status.textContent = 'Esa fecha cae en la semana '+r.semana+' de '+r.anio+'.';
+  });
+
   /* ============ KPIs ============ */
   function renderKpis(){
     var atrasadas=0, cumplidasYTD=0, atrasadasYTD=0, pendientes=0, proxima=0;
     tareas.forEach(function(t){
-      scheduledWeeks(t.frecuencia_semanas).forEach(function(w){
-        var st = estadoDe(t,w);
+      scheduledWeeks(t.frecuencia_semanas, YEAR).forEach(function(w){
+        var st = estadoDe(t, YEAR, w);
         if (st === 'atrasada') atrasadas++;
-        if (w <= CURRENT_WEEK) {
+        var esYTD = enSeguimiento(YEAR, w) && (YEAR < ANIO_HOY || (YEAR === ANIO_HOY && w <= SEMANA_HOY));
+        if (esYTD) {
           if (st === 'cumplida') cumplidasYTD++;
           else if (st === 'atrasada') atrasadasYTD++;
         }
         if (st === 'pendiente') pendientes++;
-        if (w === CURRENT_WEEK+1) proxima++;
+        if (YEAR === ANIO_HOY && w === SEMANA_HOY+1) proxima++;
       });
     });
     document.getElementById('kpiAtrasadas').textContent = atrasadas;
@@ -491,8 +578,12 @@
     document.getElementById('kpiCumplimiento').textContent = pct + '%';
     document.getElementById('kpiCumplimientoSub').textContent = cumplidasYTD + ' de ' + totalYTD + ' tareas al día';
     document.getElementById('kpiPendientes').textContent = pendientes;
-    var wr = weekRange(CURRENT_WEEK);
-    document.getElementById('kpiSemanaActual').textContent = 'semana '+CURRENT_WEEK+' · '+fmtDate(wr.start)+'–'+fmtDate(wr.end);
+    if (YEAR === ANIO_HOY) {
+      var wr = weekRange(SEMANA_HOY);
+      document.getElementById('kpiSemanaActual').textContent = 'semana '+SEMANA_HOY+' · '+fmtDate(wr.start)+'–'+fmtDate(wr.end);
+    } else {
+      document.getElementById('kpiSemanaActual').textContent = 'viendo año '+YEAR;
+    }
     document.getElementById('kpiProxima').textContent = proxima;
   }
 
@@ -501,13 +592,14 @@
     var t = tareasDe(equipoId);
     var c=0,a=0,p=0,f=0,ytdC=0,ytdT=0;
     t.forEach(function(tarea){
-      scheduledWeeks(tarea.frecuencia_semanas).forEach(function(w){
-        var st = estadoDe(tarea,w);
+      scheduledWeeks(tarea.frecuencia_semanas, YEAR).forEach(function(w){
+        var st = estadoDe(tarea, YEAR, w);
         if (st==='cumplida') c++;
         else if (st==='atrasada') a++;
         else if (st==='pendiente') p++;
         else f++;
-        if (w<=CURRENT_WEEK && st!=='pendiente'){ ytdT++; if(st==='cumplida') ytdC++; }
+        var esYTD = enSeguimiento(YEAR, w) && (YEAR < ANIO_HOY || (YEAR === ANIO_HOY && w <= SEMANA_HOY));
+        if (esYTD && st!=='pendiente'){ ytdT++; if(st==='cumplida') ytdC++; }
       });
     });
     return {c:c,a:a,p:p,f:f, pct: ytdT ? Math.round(100*ytdC/ytdT) : 100};
@@ -516,13 +608,12 @@
   function monthGroupsFor(){
     var groups = []; var lastMonth = -1;
     for (var w=1; w<=TOTAL_WEEKS; w++){
-      var m = weekRange(w).start.getMonth();
+      var m = weekRangeFor(YEAR, w).start.getMonth();
       if (m !== lastMonth){ groups.push({month:m, from:w, span:1}); lastMonth = m; }
       else groups[groups.length-1].span++;
     }
     return groups;
   }
-  var MONTH_GROUPS = monthGroupsFor();
 
   function buildWeekGrid(equipoId){
     var t = tareasDe(equipoId);
@@ -533,12 +624,12 @@
       html += '<tr><td class="tarea-name" title="'+esc(tarea.descripcion)+'">'+esc(tarea.descripcion)+'</td>';
       html += '<td class="freq">c/'+tarea.frecuencia_semanas+'sem</td>';
       var sched = {};
-      scheduledWeeks(tarea.frecuencia_semanas).forEach(function(w){ sched[w]=true; });
+      scheduledWeeks(tarea.frecuencia_semanas, YEAR).forEach(function(w){ sched[w]=true; });
       for (var w=1; w<=TOTAL_WEEKS; w++){
         if (!sched[w]) { html += '<td class="cell-wrap"></td>'; continue; }
-        var st = estadoDe(tarea,w);
-        var hoy = (w===CURRENT_WEEK) ? ' hoy' : '';
-        html += '<td class="cell-wrap"><div class="cell '+st+hoy+'" data-tarea="'+tarea.id+'" data-semana="'+w+'" title="Semana '+w+' · '+st+'"></div></td>';
+        var st = estadoDe(tarea, YEAR, w);
+        var esHoy = (YEAR===ANIO_HOY && w===SEMANA_HOY) ? ' hoy' : '';
+        html += '<td class="cell-wrap"><div class="cell '+st+esHoy+'" data-tarea="'+tarea.id+'" data-semana="'+w+'" title="Semana '+w+' de '+YEAR+' · '+st+'"></div></td>';
       }
       html += '</tr>';
     });
@@ -587,18 +678,18 @@
     var tareaId = el.dataset.tarea, semana = Number(el.dataset.semana);
     var tarea = tareas.find(function(t){ return t.id===tareaId; });
     if (!tarea) return;
-    var st = estadoDe(tarea, semana);
-    if (st === 'cumplida') abrirDetalle(tarea, semana);
-    else if (st === 'atrasada' || st === 'pendiente') abrirRegistro(tarea, semana);
+    var st = estadoDe(tarea, YEAR, semana);
+    if (st === 'cumplida') abrirDetalle(tarea, YEAR, semana);
+    else if (st === 'atrasada' || st === 'pendiente') abrirRegistro(tarea, YEAR, semana);
   }
 
   /* ============ Modal detalle ============ */
-  function abrirDetalle(tarea, semana){
-    var recs = ejecucionesByKey[keyOf(tarea.id,semana)] || [];
+  function abrirDetalle(tarea, anio, semana){
+    var recs = ejecucionesByKey[keyOf(tarea.id, anio, semana)] || [];
     var rec = recs[recs.length-1];
     var eq = equipos.find(function(e){ return e.id===tarea.equipo_id; });
     document.getElementById('detEquipo').textContent = eq ? (eq.id+'. '+eq.nombre) : '';
-    document.getElementById('detTarea').textContent = tarea.descripcion + ' · semana ' + semana;
+    document.getElementById('detTarea').textContent = tarea.descripcion + ' · semana ' + semana + ' de ' + anio;
     var html = '';
     if (rec) {
       html += '<div style="font-size:13.5px; color:var(--ink-muted); margin-bottom:10px;">' +
@@ -616,13 +707,13 @@
   }
 
   /* ============ Modal registrar ============ */
-  function abrirRegistro(tarea, semana){
-    pendingRegistro = {tarea: tarea, semana: semana};
+  function abrirRegistro(tarea, anio, semana){
+    pendingRegistro = {tarea: tarea, anio: anio, semana: semana};
     fotoDataUrl = null;
     var eq = equipos.find(function(e){ return e.id===tarea.equipo_id; });
-    var wr = weekRange(semana);
+    var wr = weekRangeFor(anio, semana);
     document.getElementById('regEquipo').textContent = eq ? (eq.id+'. '+eq.nombre) : '';
-    document.getElementById('regTarea').textContent = tarea.descripcion + ' · semana ' + semana + ' ('+fmtDate(wr.start)+'–'+fmtDate(wr.end)+')';
+    document.getElementById('regTarea').textContent = tarea.descripcion + ' · semana ' + semana + ' de ' + anio + ' ('+fmtDate(wr.start)+'–'+fmtDate(wr.end)+')';
     document.getElementById('regResponsable').value = '';
     document.getElementById('regComentario').value = '';
     document.getElementById('regFotoCamara').value = '';
@@ -692,7 +783,7 @@
       tipo: 'ejecucion',
       tarea_id: tarea.id,
       equipo_id: tarea.equipo_id,
-      anio: YEAR,
+      anio: pendingRegistro.anio,
       semana: semana,
       fecha_ejecucion: isoDate(new Date()),
       responsable: responsable,
@@ -737,17 +828,21 @@
 
   function renderListaEjecucion(){
     var items = [];
-    tareas.forEach(function(t){
-      scheduledWeeks(t.frecuencia_semanas).forEach(function(w){
-        var st = estadoDe(t,w);
-        if (st==='cumplida' || st==='programada') return;
-        if (filtroEjecucion==='urgentes' && st!=='atrasada') return;
-        if (filtroEjecucion==='semana' && st!=='pendiente') return;
-        items.push({tarea:t, semana:w, estado:st});
+    var aniosAConsiderar = [ANIO_HOY-1, ANIO_HOY]; // cubre tareas atrasadas que quedaron colgadas del año anterior
+    aniosAConsiderar.forEach(function(anio){
+      tareas.forEach(function(t){
+        scheduledWeeks(t.frecuencia_semanas, anio).forEach(function(w){
+          var st = estadoDe(t, anio, w);
+          if (st==='cumplida' || st==='programada') return;
+          if (filtroEjecucion==='urgentes' && st!=='atrasada') return;
+          if (filtroEjecucion==='semana' && st!=='pendiente') return;
+          items.push({tarea:t, anio:anio, semana:w, estado:st});
+        });
       });
     });
     items.sort(function(a,b){
       if (a.estado!==b.estado) return a.estado==='atrasada' ? -1 : 1;
+      if (a.anio!==b.anio) return a.anio-b.anio;
       return a.semana - b.semana;
     });
     var cont = document.getElementById('listaEjecucion');
@@ -757,22 +852,22 @@
     }
     cont.innerHTML = items.map(function(it){
       var eq = equipos.find(function(e){ return e.id===it.tarea.equipo_id; });
-      var wr = weekRange(it.semana);
+      var wr = weekRangeFor(it.anio, it.semana);
       var badge = it.estado==='atrasada' ? '<span class="pill crit">Atrasada</span>' : '<span class="pill warn">Esta semana</span>';
       return '' +
         '<div class="tarea-row">' +
           '<div class="info">' +
-            '<div class="equipo-lbl">'+(eq?esc(eq.nombre):'')+' · semana '+it.semana+' · '+fmtDate(wr.start)+'–'+fmtDate(wr.end)+'</div>' +
+            '<div class="equipo-lbl">'+(eq?esc(eq.nombre):'')+' · semana '+it.semana+' de '+it.anio+' · '+fmtDate(wr.start)+'–'+fmtDate(wr.end)+'</div>' +
             '<div class="desc">'+esc(it.tarea.descripcion)+'</div>' +
             '<div class="meta">'+badge+'</div>' +
           '</div>' +
-          '<button class="btn primary" data-tarea="'+it.tarea.id+'" data-semana="'+it.semana+'">Registrar</button>' +
+          '<button class="btn primary" data-tarea="'+it.tarea.id+'" data-anio="'+it.anio+'" data-semana="'+it.semana+'">Registrar</button>' +
         '</div>';
     }).join('');
     cont.querySelectorAll('button[data-tarea]').forEach(function(b){
       b.addEventListener('click', function(){
         var t = tareas.find(function(x){ return x.id===b.dataset.tarea; });
-        abrirRegistro(t, Number(b.dataset.semana));
+        abrirRegistro(t, Number(b.dataset.anio), Number(b.dataset.semana));
       });
     });
   }
@@ -793,7 +888,7 @@
         '<div class="hist-item">' +
           (r.foto_url ? '<img src="'+esc(r.foto_url)+'">' : '<div style="width:44px;height:44px;border-radius:8px;background:var(--surface-2);flex:none;"></div>') +
           '<div class="txt"><b>'+(eq?esc(eq.nombre):'')+'</b> — '+(t?esc(t.descripcion):'')+'<br>' +
-          '<span class="when">'+esc(r.responsable||'')+' · semana '+r.semana+' · '+esc(r.fecha_ejecucion||'')+'</span></div>' +
+          '<span class="when">'+esc(r.responsable||'')+' · semana '+r.semana+' de '+r.anio+' · '+esc(r.fecha_ejecucion||'')+'</span></div>' +
         '</div>';
     }).join('');
   }
@@ -818,29 +913,38 @@
   document.getElementById('rangoHasta').addEventListener('change', renderResumenRango);
 
   function weeksInRange(){
+    // Devuelve [{anio, semana}] — recorre cada año calendario que el rango toca,
+    // así un informe de diciembre a enero cruza correctamente de un año a otro.
     var desde = document.getElementById('rangoDesde').value;
     var hasta = document.getElementById('rangoHasta').value;
     if (!desde || !hasta) return [];
     var d0 = new Date(desde+'T00:00:00'), d1 = new Date(hasta+'T00:00:00');
     var out = [];
-    for (var w=1; w<=TOTAL_WEEKS; w++){
-      var wr = weekRange(w);
-      if (wr.end >= d0 && wr.start <= d1) out.push(w);
+    for (var anio = d0.getFullYear(); anio <= d1.getFullYear(); anio++){
+      var tw = totalWeeksFor(anio);
+      for (var w=1; w<=tw; w++){
+        var wr = weekRangeFor(anio, w);
+        if (wr.end >= d0 && wr.start <= d1) out.push({anio:anio, semana:w});
+      }
     }
     return out;
   }
 
   function renderResumenRango(){
     var weeks = weeksInRange();
-    var wset = {}; weeks.forEach(function(w){ wset[w]=true; });
+    var byAnio = {};
+    weeks.forEach(function(aw){ (byAnio[aw.anio] = byAnio[aw.anio]||{})[aw.semana]=true; });
     var total=0, cumplidas=0, atrasadas=0, evidencias=0;
     tareas.forEach(function(t){
-      scheduledWeeks(t.frecuencia_semanas).forEach(function(w){
-        if (!wset[w]) return;
-        total++;
-        var st = estadoDe(t,w);
-        if (st==='cumplida'){ cumplidas++; evidencias += (ejecucionesByKey[keyOf(t.id,w)]||[]).filter(function(r){return r.foto_url;}).length; }
-        else if (st==='atrasada') atrasadas++;
+      Object.keys(byAnio).forEach(function(anioStr){
+        var anio = Number(anioStr);
+        scheduledWeeks(t.frecuencia_semanas, anio).forEach(function(w){
+          if (!byAnio[anio][w]) return;
+          total++;
+          var st = estadoDe(t, anio, w);
+          if (st==='cumplida'){ cumplidas++; evidencias += (ejecucionesByKey[keyOf(t.id,anio,w)]||[]).filter(function(r){return r.foto_url;}).length; }
+          else if (st==='atrasada') atrasadas++;
+        });
       });
     });
     document.getElementById('resumenRango').innerHTML =
@@ -851,29 +955,33 @@
 
   function buildWorkbook(){
     var weeks = weeksInRange();
-    var wset = {}; weeks.forEach(function(w){ wset[w]=true; });
+    var byAnio = {};
+    weeks.forEach(function(aw){ (byAnio[aw.anio] = byAnio[aw.anio]||{})[aw.semana]=true; });
     var wb = XLSX.utils.book_new();
 
-    var detalle = [['Equipo','Subsistema','Tarea','Frecuencia (semanas)','Semana','Del','Al','Estado','Fecha ejecución','Responsable']];
+    var detalle = [['Equipo','Subsistema','Tarea','Frecuencia (semanas)','Año','Semana','Del','Al','Estado','Fecha ejecución','Responsable']];
     var resumenMap = {};
-    var evidencias = [['Equipo','Tarea','Semana','Fecha ejecución','Responsable','Comentario','Enlace a la foto']];
+    var evidencias = [['Equipo','Tarea','Año','Semana','Fecha ejecución','Responsable','Comentario','Enlace a la foto']];
 
     tareas.forEach(function(t){
       var eq = equipos.find(function(e){ return e.id===t.equipo_id; });
       var eqNombre = eq ? eq.nombre : '';
       if (!resumenMap[t.equipo_id]) resumenMap[t.equipo_id] = {nombre:eqNombre, total:0, cumplidas:0, atrasadas:0};
-      scheduledWeeks(t.frecuencia_semanas).forEach(function(w){
-        if (!wset[w]) return;
-        var st = estadoDe(t,w);
-        var wr = weekRange(w);
-        var recs = ejecucionesByKey[keyOf(t.id,w)] || [];
-        var rec = recs[recs.length-1];
-        detalle.push([eqNombre, t.subsistema, t.descripcion, t.frecuencia_semanas, w, fmtDateFull(wr.start), fmtDateFull(wr.end), st, rec?rec.fecha_ejecucion:'', rec?rec.responsable:'']);
-        resumenMap[t.equipo_id].total++;
-        if (st==='cumplida') resumenMap[t.equipo_id].cumplidas++;
-        if (st==='atrasada') resumenMap[t.equipo_id].atrasadas++;
-        recs.forEach(function(r){
-          evidencias.push([eqNombre, t.descripcion, w, r.fecha_ejecucion||'', r.responsable||'', r.comentario||'', r.foto_url||'']);
+      Object.keys(byAnio).forEach(function(anioStr){
+        var anio = Number(anioStr);
+        scheduledWeeks(t.frecuencia_semanas, anio).forEach(function(w){
+          if (!byAnio[anio][w]) return;
+          var st = estadoDe(t, anio, w);
+          var wr = weekRangeFor(anio, w);
+          var recs = ejecucionesByKey[keyOf(t.id,anio,w)] || [];
+          var rec = recs[recs.length-1];
+          detalle.push([eqNombre, t.subsistema, t.descripcion, t.frecuencia_semanas, anio, w, fmtDateFull(wr.start), fmtDateFull(wr.end), st, rec?rec.fecha_ejecucion:'', rec?rec.responsable:'']);
+          resumenMap[t.equipo_id].total++;
+          if (st==='cumplida') resumenMap[t.equipo_id].cumplidas++;
+          if (st==='atrasada') resumenMap[t.equipo_id].atrasadas++;
+          recs.forEach(function(r){
+            evidencias.push([eqNombre, t.descripcion, anio, w, r.fecha_ejecucion||'', r.responsable||'', r.comentario||'', r.foto_url||'']);
+          });
         });
       });
     });
@@ -984,10 +1092,11 @@
         var map = {};
         (data.ejecuciones||[]).forEach(function(r){
           var semana = Number(r.semana);
-          var k = keyOf(String(r.tarea_id), semana);
+          var anio = Number(r.anio);
+          var k = keyOf(String(r.tarea_id), anio, semana);
           if (!map[k]) map[k] = [];
           map[k].push({
-            tarea_id: String(r.tarea_id), equipo_id: Number(r.equipo_id), anio: Number(r.anio),
+            tarea_id: String(r.tarea_id), equipo_id: Number(r.equipo_id), anio: anio,
             semana: semana, fecha_ejecucion: r.fecha_ejecucion, responsable: r.responsable,
             foto_url: r.foto_url, comentario: r.comentario, fecha_registro: r.fecha_registro
           });
@@ -1008,6 +1117,10 @@
   }
 
   function init(){
+    refrescarConstantesDeAnio();
+    document.getElementById('anioActual').textContent = YEAR;
+    var lbl = document.getElementById('presetAnioLabel');
+    if (lbl) lbl.textContent = 'Todo '+YEAR;
     presetRange('mes');
     if (!API_URL || API_URL.indexOf('REEMPLAZA_ESTA_LINEA') === 0) {
       document.getElementById('offlineNotice').hidden = false;
