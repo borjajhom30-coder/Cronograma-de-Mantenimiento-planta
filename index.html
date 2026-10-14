@@ -61,6 +61,7 @@
   .pill.proximo{ background:var(--soon-soft); color:var(--soon-ink);} .pill.vigente{ background:var(--accent-soft); color:var(--accent-ink);}
   .dias-grande { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; }
   .equipo-card .meta-row { font-size:12.5px; color:var(--ink-muted); display:flex; flex-direction:column; gap:2px; }
+  .equipo-card .foto-thumb { width:100%; height:140px; object-fit:cover; border-radius:10px; border:1px solid var(--border); background:var(--surface-2); }
   .equipo-card .acciones { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
   .empty-msg { color:var(--ink-faint); font-size:13.5px; padding:30px 4px; text-align:center; }
   .hist-item { display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
@@ -136,11 +137,19 @@
     <h3 id="equipoModalTitulo">Agregar equipo</h3>
     <div class="modal-sub">Con la frecuencia que te indique el proveedor, la app calcula sola la próxima fecha.</div>
     <div class="field"><label>Nombre del equipo</label><input type="text" id="eqNombre" placeholder="Ej: Bomba de fungicida"></div>
+    <div class="field"><label>Tipo de equipo</label><input type="text" id="eqTipo" placeholder="Ej: Bomba, motor, compresor"></div>
+    <div class="field"><label>Referencia / modelo</label><input type="text" id="eqReferencia" placeholder="Ej: KSB-200"></div>
     <div class="field"><label>Área / ubicación (opcional)</label><input type="text" id="eqArea" placeholder="Ej: Empacadora"></div>
     <div class="field"><label>Fecha de compra o del último mantenimiento</label><input type="date" id="eqFechaBase"></div>
     <div class="field"><label>Frecuencia de mantenimiento (en meses)</label><input type="number" id="eqFrecuencia" min="1" step="1" placeholder="Ej: 4"></div>
     <div class="field"><label>Proveedor (opcional)</label><input type="text" id="eqProveedor"></div>
     <div class="field"><label>Encargado (opcional)</label><input type="text" id="eqEncargado"></div>
+    <div class="field"><label>Marca (opcional)</label><input type="text" id="eqMarca"></div>
+    <div class="field">
+      <label>Foto del equipo (para que cualquiera lo identifique)</label>
+      <input type="file" id="eqFoto" accept="image/*" capture="environment">
+      <img id="eqFotoPreview" class="photo-preview" hidden alt="Vista previa del equipo">
+    </div>
     <div class="field"><label>Notas (opcional)</label><textarea id="eqNotas"></textarea></div>
     <div class="status-msg" id="eqStatus"></div>
     <div class="modal-actions">
@@ -194,6 +203,7 @@ if (configurado) {
 var equipos = [];
 var pendingRegistro = null; // {equipo}
 var fotoFile = null;
+var eqFotoFile = null;
 
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function fmtDate(iso){ if(!iso) return '—'; var p = iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
@@ -247,13 +257,16 @@ function renderEquipoGrid(){
     var diasTxt = e.dias_restantes < 0 ? ('Atrasado ' + Math.abs(e.dias_restantes) + ' días') : (e.dias_restantes + ' días');
     return '' +
       '<div class="equipo-card">' +
+        (e.foto_url ? '<img class="foto-thumb" src="'+esc(e.foto_url)+'" alt="Foto de '+esc(e.nombre)+'">' : '') +
         '<div class="name">'+esc(e.nombre)+'</div>' +
+        ((e.tipo || e.referencia) ? '<div class="sub">'+esc([e.tipo,e.referencia].filter(Boolean).join(' · '))+'</div>' : '') +
         (e.area ? '<div class="sub">'+esc(e.area)+'</div>' : '') +
         '<span class="pill '+e.estado+'">'+ESTADO_LABEL[e.estado]+'</span>' +
         '<div class="dias-grande">'+diasTxt+'</div>' +
         '<div class="meta-row">' +
           '<span>Próximo mantenimiento: '+fmtDate(e.proxima_fecha)+'</span>' +
           '<span>Frecuencia: cada '+e.frecuencia_meses+' meses</span>' +
+          (e.marca ? '<span>Marca: '+esc(e.marca)+'</span>' : '') +
           (e.proveedor ? '<span>Proveedor: '+esc(e.proveedor)+'</span>' : '') +
           (e.encargado ? '<span>Encargado: '+esc(e.encargado)+'</span>' : '') +
         '</div>' +
@@ -274,26 +287,46 @@ function renderEquipoGrid(){
 var equipoEditandoId = null;
 document.getElementById('btnNuevoEquipo').addEventListener('click', function(){
   equipoEditandoId = null;
+  eqFotoFile = null;
   document.getElementById('equipoModalTitulo').textContent = 'Agregar equipo';
-  ['eqNombre','eqArea','eqProveedor','eqEncargado','eqNotas'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['eqNombre','eqTipo','eqReferencia','eqArea','eqProveedor','eqEncargado','eqMarca','eqNotas'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('eqFechaBase').value = hoyIso();
   document.getElementById('eqFrecuencia').value = '';
+  document.getElementById('eqFoto').value = '';
+  document.getElementById('eqFotoPreview').hidden = true;
+  document.getElementById('eqFotoPreview').src = '';
   document.getElementById('eqStatus').textContent = '';
   document.getElementById('modalEquipo').hidden = false;
+});
+
+document.getElementById('eqFoto').addEventListener('change', function(){
+  var f = this.files && this.files[0];
+  if (!f) return;
+  eqFotoFile = f;
+  var reader = new FileReader();
+  reader.onload = function(e){ var img = document.getElementById('eqFotoPreview'); img.src = e.target.result; img.hidden = false; };
+  reader.readAsDataURL(f);
 });
 
 function abrirEditar(id){
   var e = equipos.find(function(x){ return x.id===id; });
   if (!e) return;
   equipoEditandoId = id;
+  eqFotoFile = null;
   document.getElementById('equipoModalTitulo').textContent = 'Editar equipo';
   document.getElementById('eqNombre').value = e.nombre || '';
+  document.getElementById('eqTipo').value = e.tipo || '';
+  document.getElementById('eqReferencia').value = e.referencia || '';
   document.getElementById('eqArea').value = e.area || '';
   document.getElementById('eqFechaBase').value = e.fecha_base || '';
   document.getElementById('eqFrecuencia').value = e.frecuencia_meses || '';
   document.getElementById('eqProveedor').value = e.proveedor || '';
   document.getElementById('eqEncargado').value = e.encargado || '';
+  document.getElementById('eqMarca').value = e.marca || '';
   document.getElementById('eqNotas').value = e.notas || '';
+  document.getElementById('eqFoto').value = '';
+  var eqPrev = document.getElementById('eqFotoPreview');
+  if (e.foto_url) { eqPrev.src = e.foto_url; eqPrev.hidden = false; } else { eqPrev.src = ''; eqPrev.hidden = true; }
   document.getElementById('eqStatus').textContent = '';
   document.getElementById('modalEquipo').hidden = false;
 }
@@ -308,20 +341,43 @@ document.getElementById('btnGuardarEquipo').addEventListener('click', function()
   if (!frecuencia || frecuencia<=0){ statusEl.textContent='Escribe la frecuencia en meses (ej: 4).'; return; }
   var payload = {
     nombre: nombre,
+    tipo: document.getElementById('eqTipo').value.trim() || null,
+    referencia: document.getElementById('eqReferencia').value.trim() || null,
     area: document.getElementById('eqArea').value.trim() || null,
     fecha_base: fechaBase,
     frecuencia_meses: frecuencia,
     proveedor: document.getElementById('eqProveedor').value.trim() || null,
     encargado: document.getElementById('eqEncargado').value.trim() || null,
+    marca: document.getElementById('eqMarca').value.trim() || null,
     notas: document.getElementById('eqNotas').value.trim() || null
   };
   statusEl.textContent = 'Guardando…';
-  var op = equipoEditandoId ? db.from('equipos').update(payload).eq('id', equipoEditandoId) : db.from('equipos').insert(payload);
-  op.then(function(res){
-    if (res.error) throw res.error;
-    document.getElementById('modalEquipo').hidden = true;
-    cargarEquipos();
-  }).catch(function(err){ statusEl.textContent = 'No se pudo guardar: ' + (err.message||err); });
+
+  function subirFotoYTerminar(id){
+    if (!eqFotoFile) { document.getElementById('modalEquipo').hidden = true; cargarEquipos(); return; }
+    var path = id + '/' + Date.now() + '-' + eqFotoFile.name;
+    db.storage.from('equipos').upload(path, eqFotoFile).then(function(res){
+      if (res.error) throw res.error;
+      var pub = db.storage.from('equipos').getPublicUrl(path);
+      return db.from('equipos').update({foto_url: pub.data.publicUrl}).eq('id', id);
+    }).then(function(res){
+      if (res && res.error) throw res.error;
+      document.getElementById('modalEquipo').hidden = true;
+      cargarEquipos();
+    }).catch(function(err){ statusEl.textContent = 'El equipo se guardó, pero la foto no se pudo subir: ' + (err.message||err); cargarEquipos(); });
+  }
+
+  if (equipoEditandoId) {
+    db.from('equipos').update(payload).eq('id', equipoEditandoId).then(function(res){
+      if (res.error) throw res.error;
+      subirFotoYTerminar(equipoEditandoId);
+    }).catch(function(err){ statusEl.textContent = 'No se pudo guardar: ' + (err.message||err); });
+  } else {
+    db.from('equipos').insert(payload).select().single().then(function(res){
+      if (res.error) throw res.error;
+      subirFotoYTerminar(res.data.id);
+    }).catch(function(err){ statusEl.textContent = 'No se pudo guardar: ' + (err.message||err); });
+  }
 });
 
 function desactivarEquipo(id){
@@ -422,8 +478,8 @@ document.getElementById('btnDescargarExcel').addEventListener('click', function(
   ]).then(function(res){
     var eqs = res[0].data || [], hist = res[1].data || [];
     var wb = XLSX.utils.book_new();
-    var estadoRows = [['Equipo','Área','Próximo mantenimiento','Días restantes','Estado','Frecuencia (meses)','Proveedor','Encargado']];
-    eqs.forEach(function(e){ estadoRows.push([e.nombre, e.area||'', fmtDate(e.proxima_fecha), e.dias_restantes, ESTADO_LABEL[e.estado]||e.estado, e.frecuencia_meses, e.proveedor||'', e.encargado||'']); });
+    var estadoRows = [['Equipo','Tipo','Referencia','Marca','Área','Próximo mantenimiento','Días restantes','Estado','Frecuencia (meses)','Proveedor','Encargado']];
+    eqs.forEach(function(e){ estadoRows.push([e.nombre, e.tipo||'', e.referencia||'', e.marca||'', e.area||'', fmtDate(e.proxima_fecha), e.dias_restantes, ESTADO_LABEL[e.estado]||e.estado, e.frecuencia_meses, e.proveedor||'', e.encargado||'']); });
     var histRows = [['Equipo','Fecha realizada','Responsable','Comentario','Foto']];
     hist.forEach(function(r){ histRows.push([r.equipos?r.equipos.nombre:'', fmtDate(r.fecha_realizada), r.responsable||'', r.comentario||'', r.foto_url||'']); });
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(estadoRows), 'Estado actual');
