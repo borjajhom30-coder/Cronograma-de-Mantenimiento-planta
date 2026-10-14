@@ -1,0 +1,13 @@
+{
+  "name": "Cronograma de mantenimiento - Agrícola Guapa",
+  "short_name": "Mantenimiento Guapa",
+  "description": "Mantenimiento preventivo de los equipos de la planta - Agrícola Guapa",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f5ee",
+  "theme_color": "#1c6b3a",
+  "icons": [
+    { "src": "icono-app.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
