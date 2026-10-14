@@ -39,7 +39,7 @@
   .tab { border:none; background:transparent; color:var(--ink-muted); font-size:13.5px; font-weight:600; padding:8px 14px; border-radius:7px; cursor:pointer; }
   .tab.active { background:var(--surface); color:var(--accent-ink); box-shadow:var(--shadow); }
   .view[hidden] { display:none; }
-  .kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+  .kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:18px; }
   @media (max-width:720px){ .kpi-row{ grid-template-columns:repeat(2,1fr);} }
   .kpi-tile { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; box-shadow:var(--shadow); }
   .kpi-tile .lbl { font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px; }
@@ -59,6 +59,7 @@
   .pill { font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:4px; align-self:flex-start; }
   .pill.atrasado{ background:var(--crit-soft); color:var(--crit-ink);} .pill.urgente{ background:var(--warn-soft); color:var(--warn-ink);}
   .pill.proximo{ background:var(--soon-soft); color:var(--soon-ink);} .pill.vigente{ background:var(--accent-soft); color:var(--accent-ink);}
+  .pill.incompleto{ background:var(--surface-3); color:var(--ink-muted);}
   .dias-grande { font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; }
   .equipo-card .meta-row { font-size:12.5px; color:var(--ink-muted); display:flex; flex-direction:column; gap:2px; }
   .equipo-card .foto-thumb { width:100%; height:140px; object-fit:cover; border-radius:10px; border:1px solid var(--border); background:var(--surface-2); }
@@ -107,6 +108,7 @@
         <div class="kpi-tile warn"><span class="lbl">Urgentes (≤15 días)</span><span class="val" id="kpiUrgentes">–</span></div>
         <div class="kpi-tile soon"><span class="lbl">Próximos (16–30 días)</span><span class="val" id="kpiProximos">–</span></div>
         <div class="kpi-tile good"><span class="lbl">Vigentes</span><span class="val" id="kpiVigentes">–</span></div>
+        <div class="kpi-tile"><span class="lbl">Faltan datos</span><span class="val" id="kpiIncompletos">–</span></div>
       </div>
       <div class="toolbar">
         <button class="btn primary" id="btnNuevoEquipo">+ Agregar equipo nuevo</button>
@@ -140,8 +142,8 @@
     <div class="field"><label>Tipo de equipo</label><input type="text" id="eqTipo" placeholder="Ej: Bomba, motor, compresor"></div>
     <div class="field"><label>Referencia / modelo</label><input type="text" id="eqReferencia" placeholder="Ej: KSB-200"></div>
     <div class="field"><label>Área / ubicación (opcional)</label><input type="text" id="eqArea" placeholder="Ej: Empacadora"></div>
-    <div class="field"><label>Fecha de compra o del último mantenimiento</label><input type="date" id="eqFechaBase"></div>
-    <div class="field"><label>Frecuencia de mantenimiento (en meses)</label><input type="number" id="eqFrecuencia" min="1" step="1" placeholder="Ej: 4"></div>
+    <div class="field"><label>Fecha de compra o del último mantenimiento (opcional, la puedes completar después)</label><input type="date" id="eqFechaBase"></div>
+    <div class="field"><label>Frecuencia de mantenimiento en meses (opcional, la puedes completar después)</label><input type="number" id="eqFrecuencia" min="1" step="1" placeholder="Ej: 4"></div>
     <div class="field"><label>Proveedor (opcional)</label><input type="text" id="eqProveedor"></div>
     <div class="field"><label>Encargado (opcional)</label><input type="text" id="eqEncargado"></div>
     <div class="field"><label>Marca (opcional)</label><input type="text" id="eqMarca"></div>
@@ -240,21 +242,23 @@ function cargarEquipos(){
 }
 
 function renderKpis(){
-  var c={atrasado:0,urgente:0,proximo:0,vigente:0};
+  var c={atrasado:0,urgente:0,proximo:0,vigente:0,incompleto:0};
   equipos.forEach(function(e){ if (c[e.estado]!==undefined) c[e.estado]++; });
   document.getElementById('kpiAtrasados').textContent = c.atrasado;
   document.getElementById('kpiUrgentes').textContent = c.urgente;
   document.getElementById('kpiProximos').textContent = c.proximo;
   document.getElementById('kpiVigentes').textContent = c.vigente;
+  document.getElementById('kpiIncompletos').textContent = c.incompleto;
 }
 
-var ESTADO_LABEL = { atrasado:'Atrasado', urgente:'Urgente', proximo:'Próximo', vigente:'Vigente' };
+var ESTADO_LABEL = { atrasado:'Atrasado', urgente:'Urgente', proximo:'Próximo', vigente:'Vigente', incompleto:'Faltan datos' };
 
 function renderEquipoGrid(){
   var cont = document.getElementById('equipoGrid');
   if (!equipos.length){ cont.innerHTML = '<div class="empty-msg">Todavía no hay equipos registrados. Usa "Agregar equipo nuevo" para empezar.</div>'; return; }
   cont.innerHTML = equipos.map(function(e){
-    var diasTxt = e.dias_restantes < 0 ? ('Atrasado ' + Math.abs(e.dias_restantes) + ' días') : (e.dias_restantes + ' días');
+    var incompleto = e.estado === 'incompleto';
+    var diasTxt = incompleto ? '' : (e.dias_restantes < 0 ? ('Atrasado ' + Math.abs(e.dias_restantes) + ' días') : (e.dias_restantes + ' días'));
     return '' +
       '<div class="equipo-card">' +
         (e.foto_url ? '<img class="foto-thumb" src="'+esc(e.foto_url)+'" alt="Foto de '+esc(e.nombre)+'">' : '') +
@@ -262,10 +266,12 @@ function renderEquipoGrid(){
         ((e.tipo || e.referencia) ? '<div class="sub">'+esc([e.tipo,e.referencia].filter(Boolean).join(' · '))+'</div>' : '') +
         (e.area ? '<div class="sub">'+esc(e.area)+'</div>' : '') +
         '<span class="pill '+e.estado+'">'+ESTADO_LABEL[e.estado]+'</span>' +
-        '<div class="dias-grande">'+diasTxt+'</div>' +
+        (incompleto
+          ? '<div class="sub" style="color:var(--warn-ink);">Falta la fecha base y/o la frecuencia para calcular el mantenimiento.</div>'
+          : '<div class="dias-grande">'+diasTxt+'</div>') +
         '<div class="meta-row">' +
-          '<span>Próximo mantenimiento: '+fmtDate(e.proxima_fecha)+'</span>' +
-          '<span>Frecuencia: cada '+e.frecuencia_meses+' meses</span>' +
+          (incompleto ? '' : '<span>Próximo mantenimiento: '+fmtDate(e.proxima_fecha)+'</span>') +
+          (incompleto ? '' : '<span>Frecuencia: cada '+e.frecuencia_meses+' meses</span>') +
           (e.marca ? '<span>Marca: '+esc(e.marca)+'</span>' : '') +
           (e.proveedor ? '<span>Proveedor: '+esc(e.proveedor)+'</span>' : '') +
           (e.encargado ? '<span>Encargado: '+esc(e.encargado)+'</span>' : '') +
@@ -333,12 +339,12 @@ function abrirEditar(id){
 
 document.getElementById('btnGuardarEquipo').addEventListener('click', function(){
   var nombre = document.getElementById('eqNombre').value.trim();
-  var fechaBase = document.getElementById('eqFechaBase').value;
-  var frecuencia = Number(document.getElementById('eqFrecuencia').value);
+  var fechaBase = document.getElementById('eqFechaBase').value || null;
+  var frecuenciaTxt = document.getElementById('eqFrecuencia').value;
+  var frecuencia = frecuenciaTxt ? Number(frecuenciaTxt) : null;
   var statusEl = document.getElementById('eqStatus');
   if (!nombre){ statusEl.textContent='Escribe el nombre del equipo.'; return; }
-  if (!fechaBase){ statusEl.textContent='Elige la fecha de compra o del último mantenimiento.'; return; }
-  if (!frecuencia || frecuencia<=0){ statusEl.textContent='Escribe la frecuencia en meses (ej: 4).'; return; }
+  if (frecuencia !== null && frecuencia<=0){ statusEl.textContent='La frecuencia debe ser un número mayor a 0 (ej: 4).'; return; }
   var payload = {
     nombre: nombre,
     tipo: document.getElementById('eqTipo').value.trim() || null,
